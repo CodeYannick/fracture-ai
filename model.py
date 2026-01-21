@@ -3,36 +3,29 @@ import torch.nn as nn
 from torchvision import models
 
 def get_resnet_mnist_model():
-    # Load ResNet18
-    # We don't need pretrained weights for such a simple dataset like MNIST, 
-    # but using them can speed up convergence. 
-    # However, since we are changing the first layer heavily, training from scratch is also fine.
-    # Let's use no weights for a "clean" experiment or weights=None.
+    """
+    获取适用于 MNIST 数据集的 ResNet18 模型。
+    因为 MNIST 是单通道（灰度）图像且只有 10 个类别，我们需要修改标准 ResNet18 的输入层和输出层。
+    """
+    # 加载 ResNet18 模型
+    # 对于像 MNIST 这样简单的数据集，我们不需要预训练权重 (weights=None)。
+    # 使用预训练权重可能会加速收敛，但这里为了演示从头训练，我们不使用它。
     model = models.resnet18(weights=None)
     
-    # Modify the first convolution layer
-    # Original: nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
-    # MNIST images are 28x28 grayscale (1 channel).
-    # To avoid aggressive downsampling on small images, we can change kernel size and stride.
-    # Standard ResNet: 7x7 conv stride 2 -> 14x14 output.
-    # We can change it to 3x3 conv stride 1 to keep spatial dimensions larger longer if we wanted,
-    # but for a simple "use ResNet" demo, just changing channels is the minimal change.
-    # However, 28x28 -> (stride 2) 14x14 -> (maxpool stride 2) 7x7 ... eventually it gets very small (1x1) quickly.
-    # ResNet18 structure:
-    # Conv1 (s2) -> 14x14
-    # MaxPool (s2) -> 7x7
-    # Layer1 -> 7x7
-    # Layer2 (s2) -> 4x4
-    # Layer3 (s2) -> 2x2
-    # Layer4 (s2) -> 1x1
-    # AvgPool -> 1x1
-    # This actually works out exactly to 1x1 feature map before the final FC.
+    # 修改第一个卷积层
+    # 原始 ResNet18: nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    # MNIST 图像是 28x28 灰度图 (1 个通道)。
+    # 为了避免在小图像上进行过激的下采样（导致特征图过早变得太小），我们可以调整 kernel_size 和 stride。
+    # 标准 ResNet: 7x7 卷积 stride 2 -> 14x14 输出。
+    # 我们可以将其改为 3x3 卷积 stride 1 来保留更多的空间信息。
+    # 但为了保持最简单的修改（只改通道数），这里我们只修改输入通道数为 1。
+    # 结构流: 28x28 -> (stride 2) 14x14 -> (maxpool stride 2) 7x7 ... 最后变成 1x1。
     
     model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
     
-    # Modify the final fully connected layer
-    # Original: nn.Linear(512, 1000)
-    # MNIST has 10 classes
+    # 修改最后的全连接层 (Fully Connected Layer)
+    # 原始: nn.Linear(512, 1000) (ImageNet 有 1000 类)
+    # MNIST 只有 10 个类别 (数字 0-9)
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, 10)
     
