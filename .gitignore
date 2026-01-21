@@ -1,0 +1,5 @@
+/web/node_modules
+data/MNIST
+checkpoints
+__pycache__
+flask.log
