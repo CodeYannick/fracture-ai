@@ -2,10 +2,14 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
-def get_resnet_mnist_model():
+def get_resnet_mnist_model(num_classes=10):
     """
     获取适用于 MNIST 数据集的 ResNet18 模型。
-    因为 MNIST 是单通道（灰度）图像且只有 10 个类别，我们需要修改标准 ResNet18 的输入层和输出层。
+    因为 MNIST 是单通道（灰度）图像，我们需要修改标准 ResNet18 的输入层和输出层。
+    
+    Args:
+        num_classes (int): 输出类别的数量。默认为 10 (MNIST 数字 0-9)。
+                          如果要识别字母，可以改为 62 (10数字 + 26大写 + 26小写) 或其他数量。
     """
     # 加载 ResNet18 模型
     # 对于像 MNIST 这样简单的数据集，我们不需要预训练权重 (weights=None)。
@@ -27,6 +31,6 @@ def get_resnet_mnist_model():
     # 原始: nn.Linear(512, 1000) (ImageNet 有 1000 类)
     # MNIST 只有 10 个类别 (数字 0-9)
     num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 10)
+    model.fc = nn.Linear(num_ftrs, num_classes)
     
     return model

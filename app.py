@@ -14,11 +14,23 @@ CORS(app)  # 启用所有路由的 CORS (跨域资源共享)
 
 # 加载模型
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-model = get_resnet_mnist_model()
 
-# 使用绝对路径加载 Checkpoint，防止相对路径问题
+# EMNIST ByClass 映射表 (0-9, A-Z, a-z)
+EMNIST_MAPPING = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+# 尝试加载 62 类的新模型，如果不存在则回退到 10 类旧模型
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-checkpoint_path = os.path.join(BASE_DIR, "checkpoints", "resnet_mnist.pth")
+finetune_checkpoint = os.path.join(BASE_DIR, "checkpoints", "resnet_emnist_62class.pth")
+base_checkpoint = os.path.join(BASE_DIR, "checkpoints", "resnet_mnist.pth")
+
+if os.path.exists(finetune_checkpoint):
+    print(f"Loading 62-class model from {finetune_checkpoint}...")
+    model = get_resnet_mnist_model(num_classes=62)
+    checkpoint_path = finetune_checkpoint
+else:
+    print(f"Loading 10-class model from {base_checkpoint}...")
+    model = get_resnet_mnist_model(num_classes=10)
+    checkpoint_path = base_checkpoint
 
 try:
     model.load_state_dict(torch.load(checkpoint_path, map_location=device))
@@ -69,8 +81,17 @@ def predict():
             probabilities = torch.nn.functional.softmax(output, dim=1) # 计算概率
             confidence, predicted = torch.max(probabilities, 1) # 获取最大概率及其对应的类别
             
+        predicted_index = int(predicted.item())
+        
+        # 根据类别数量判断是返回数字还是字符
+        if model.fc.out_features == 62:
+            predicted_char = EMNIST_MAPPING[predicted_index]
+        else:
+            predicted_char = str(predicted_index) # 兼容旧的 10 类模型
+
         return jsonify({
-            'digit': int(predicted.item()),
+            'digit': predicted_char, # 返回字符 (虽然字段名叫 digit，但为了兼容前端暂不修改字段名)
+            'class_id': predicted_index,
             'confidence': float(confidence.item())
         })
 

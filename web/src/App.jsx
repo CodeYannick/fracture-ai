@@ -19,7 +19,7 @@ function App() {
     
     // Drawing settings
     ctx.strokeStyle = 'white'
-    ctx.lineWidth = 15
+    ctx.lineWidth = 25 // 增加笔画宽度，使其更接近 MNIST/EMNIST 的笔触
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
   }, [])
